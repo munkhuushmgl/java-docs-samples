@@ -16,13 +16,17 @@
 
 package com.example.vision;
 
+import com.google.api.gax.longrunning.OperationFuture;
+import com.google.cloud.vision.v1.LocationName;
 import com.google.cloud.vision.v1.Product;
 import com.google.cloud.vision.v1.Product.KeyValue;
 import com.google.cloud.vision.v1.ProductSearchClient;
+import com.google.cloud.vision.v1.PurgeProductsRequest;
 import com.google.protobuf.FieldMask;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.concurrent.TimeUnit;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -51,12 +55,12 @@ public class ProductManagement {
    * @throws IOException - on I/O errors.
    */
   public static void createProduct(
-      String projectId,
-      String computeRegion,
-      String productId,
-      String productDisplayName,
-      String productCategory)
-      throws IOException {
+          String projectId,
+          String computeRegion,
+          String productId,
+          String productDisplayName,
+          String productCategory)
+          throws IOException {
     try (ProductSearchClient client = ProductSearchClient.create()) {
 
       // A resource that represents Google Cloud Platform location.
@@ -64,11 +68,11 @@ public class ProductManagement {
       // Create a product with the product specification in the region.
       // Multiple labels are also supported.
       Product myProduct =
-          Product.newBuilder()
-              .setName(productId)
-              .setDisplayName(productDisplayName)
-              .setProductCategory(productCategory)
-              .build();
+              Product.newBuilder()
+                      .setName(productId)
+                      .setDisplayName(productDisplayName)
+                      .setProductCategory(productCategory)
+                      .build();
       Product product = client.createProduct(formattedParent, myProduct, productId);
       // Display the product information
       System.out.println(String.format("Product name: %s", product.getName()));
@@ -95,14 +99,14 @@ public class ProductManagement {
         // Display the product information
         System.out.println(String.format("\nProduct name: %s", product.getName()));
         System.out.println(
-            String.format(
-                "Product id: %s",
-                product.getName().substring(product.getName().lastIndexOf('/') + 1)));
+                String.format(
+                        "Product id: %s",
+                        product.getName().substring(product.getName().lastIndexOf('/') + 1)));
         System.out.println(String.format("Product display name: %s", product.getDisplayName()));
         System.out.println(String.format("Product category: %s", product.getProductCategory()));
         System.out.println("Product labels:");
         System.out.println(
-            String.format("Product labels: %s", product.getProductLabelsList().toString()));
+                String.format("Product labels: %s", product.getProductLabelsList().toString()));
       }
     }
   }
@@ -118,20 +122,20 @@ public class ProductManagement {
    * @throws IOException - on I/O errors.
    */
   public static void getProduct(String projectId, String computeRegion, String productId)
-      throws IOException {
+          throws IOException {
     try (ProductSearchClient client = ProductSearchClient.create()) {
 
       // Get the full path of the product.
       String formattedName =
-          ProductSearchClient.formatProductName(projectId, computeRegion, productId);
+              ProductSearchClient.formatProductName(projectId, computeRegion, productId);
       // Get complete detail of the product.
       Product product = client.getProduct(formattedName);
       // Display the product information
       System.out.println(String.format("Product name: %s", product.getName()));
       System.out.println(
-          String.format(
-              "Product id: %s",
-              product.getName().substring(product.getName().lastIndexOf('/') + 1)));
+              String.format(
+                      "Product id: %s",
+                      product.getName().substring(product.getName().lastIndexOf('/') + 1)));
       System.out.println(String.format("Product display name: %s", product.getDisplayName()));
       System.out.println(String.format("Product description: %s", product.getDescription()));
       System.out.println(String.format("Product category: %s", product.getProductCategory()));
@@ -154,25 +158,25 @@ public class ProductManagement {
    * @throws IOException - on I/O errors.
    */
   public static void updateProductLabels(
-      String projectId, String computeRegion, String productId, String productLabels)
-      throws IOException {
+          String projectId, String computeRegion, String productId, String productLabels)
+          throws IOException {
     try (ProductSearchClient client = ProductSearchClient.create()) {
 
       // Get the full path of the product.
       String formattedName =
-          ProductSearchClient.formatProductName(projectId, computeRegion, productId);
+              ProductSearchClient.formatProductName(projectId, computeRegion, productId);
 
       // Set product name, product labels and product display name.
       // Multiple labels are also supported.
       Product product =
-          Product.newBuilder()
-              .setName(formattedName)
-              .addProductLabels(
-                  KeyValue.newBuilder()
-                      .setKey(productLabels.split(",")[0].split("=")[0])
-                      .setValue(productLabels.split(",")[0].split("=")[1])
-                      .build())
-              .build();
+              Product.newBuilder()
+                      .setName(formattedName)
+                      .addProductLabels(
+                              KeyValue.newBuilder()
+                                      .setKey(productLabels.split(",")[0].split("=")[0])
+                                      .setValue(productLabels.split(",")[0].split("=")[1])
+                                      .build())
+                      .build();
 
       // Set product update field name.
       FieldMask updateMask = FieldMask.newBuilder().addPaths("product_labels").build();
@@ -199,12 +203,12 @@ public class ProductManagement {
    * @throws IOException - on I/O errors.
    */
   public static void deleteProduct(String projectId, String computeRegion, String productId)
-      throws IOException {
+          throws IOException {
     try (ProductSearchClient client = ProductSearchClient.create()) {
 
       // Get the full path of the product.
       String formattedName =
-          ProductSearchClient.formatProductName(projectId, computeRegion, productId);
+              ProductSearchClient.formatProductName(projectId, computeRegion, productId);
 
       // Delete a product.
       client.deleteProduct(formattedName);
@@ -212,6 +216,42 @@ public class ProductManagement {
     }
   }
   // [END vision_product_search_delete_product]
+
+  // [START vision_product_search_purge_orphan_products]
+  /**
+   * Delete the product and all its reference images.
+   *
+   * @param projectId - Id of the project.
+   * @param computeRegion - A compute region name.
+   * @param force - Perform the purge only when force is set to True.
+   * @throws Exception - on I/O and API errors.
+   */
+  public static void purgeOrphanProducts(String projectId, String computeRegion, boolean force)
+          throws Exception {
+    try (ProductSearchClient client = ProductSearchClient.create()) {
+
+      String parent = LocationName.format(projectId, computeRegion);
+
+      // The purge operation is async.
+      PurgeProductsRequest req = PurgeProductsRequest
+              .newBuilder()
+              .setDeleteOrphanProducts(true)
+              .setForce(force)
+              .setParent(parent)
+              .build();
+
+      OperationFuture response = client.purgeProductsAsync(req);
+
+      while (!response.isDone()) {
+        Thread.sleep(1000);
+      }
+      // TODO: replace with ```response.get(60, TimeUnit.SECONDS); ```
+
+
+      System.out.println("Orphan products deleted.");
+    }
+  }
+  // [END vision_product_search_purge_orphan_products]
 
   public static void main(String[] args) throws Exception {
     ProductManagement productManagement = new ProductManagement();
@@ -241,6 +281,9 @@ public class ProductManagement {
     Subparser deleteProductParser = subparsers.addParser("delete_product");
     deleteProductParser.addArgument("productId");
 
+    Subparser purgeOrphanProductsParser = subparsers.addParser("purge_orphan_products");
+    purgeOrphanProductsParser.addArgument("force");
+
     String projectId = System.getenv("PROJECT_ID");
     String computeRegion = System.getenv("REGION_NAME");
 
@@ -249,11 +292,11 @@ public class ProductManagement {
       ns = parser.parseArgs(args);
       if (ns.get("command").equals("create_product")) {
         createProduct(
-            projectId,
-            computeRegion,
-            ns.getString("productId"),
-            ns.getString("productDisplayName"),
-            ns.getString("productCategory"));
+                projectId,
+                computeRegion,
+                ns.getString("productId"),
+                ns.getString("productDisplayName"),
+                ns.getString("productCategory"));
       }
       if (ns.get("command").equals("list_products")) {
         listProducts(projectId, computeRegion);
@@ -263,12 +306,14 @@ public class ProductManagement {
       }
       if (ns.get("command").equals("update_product_labels")) {
         updateProductLabels(
-            projectId, computeRegion, ns.getString("productId"), ns.getString("productLabels"));
+                projectId, computeRegion, ns.getString("productId"), ns.getString("productLabels"));
       }
       if (ns.get("command").equals("delete_product")) {
         deleteProduct(projectId, computeRegion, ns.getString("productId"));
       }
-
+      if (ns.get("command").equals("purge_orphan_products")) {
+        purgeOrphanProducts(projectId, computeRegion, Boolean.parseBoolean(ns.getString("force")));
+      }
     } catch (ArgumentParserException e) {
       parser.handleError(e);
     }

@@ -34,7 +34,7 @@ public class ProductInProductSetManagementIT {
   private static final String PROJECT_ID = System.getenv("GOOGLE_CLOUD_PROJECT");
   private static final String COMPUTE_REGION = "us-west1";
   private static final String PRODUCT_SET_DISPLAY_NAME =
-      "fake_pdt_set_display_name_for_testing";
+          "fake_pdt_set_display_name_for_testing";
   private static final String PRODUCT_SET_ID = "fake_pdt_set_id_for_testing";
   private static final String PRODUCT_DISPLAY_NAME = "fake_pdt_display_name_for_testing";
   private static final String PRODUCT_CATEGORY = "apparel";
@@ -48,9 +48,9 @@ public class ProductInProductSetManagementIT {
     out = new PrintStream(bout);
     System.setOut(out);
     ProductSetManagement.createProductSet(
-        PROJECT_ID, COMPUTE_REGION, PRODUCT_SET_ID, PRODUCT_SET_DISPLAY_NAME);
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_SET_ID, PRODUCT_SET_DISPLAY_NAME);
     ProductManagement.createProduct(
-        PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_DISPLAY_NAME, PRODUCT_CATEGORY);
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_DISPLAY_NAME, PRODUCT_CATEGORY);
     bout.reset();
   }
 
@@ -65,7 +65,7 @@ public class ProductInProductSetManagementIT {
   public void testAddProductToProductSet() throws Exception {
     // Act
     ProductInProductSetManagement.listProductsInProductSet(
-        PROJECT_ID, COMPUTE_REGION, PRODUCT_SET_ID);
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_SET_ID);
 
     // Assert
     String got = bout.toString();
@@ -75,7 +75,7 @@ public class ProductInProductSetManagementIT {
 
     // Act
     ProductInProductSetManagement.addProductToProductSet(
-        PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_SET_ID);
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_SET_ID);
 
     // Assert
     got = bout.toString();
@@ -86,9 +86,9 @@ public class ProductInProductSetManagementIT {
   public void testRemoveProductFromProductSet() throws Exception {
     // Act
     ProductInProductSetManagement.addProductToProductSet(
-        PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_SET_ID);
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_SET_ID);
     ProductInProductSetManagement.listProductsInProductSet(
-        PROJECT_ID, COMPUTE_REGION, PRODUCT_SET_ID);
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_SET_ID);
 
     // Assert
     String got = bout.toString();
@@ -98,9 +98,33 @@ public class ProductInProductSetManagementIT {
 
     // Act
     ProductInProductSetManagement.removeProductFromProductSet(
-        PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_SET_ID);
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_SET_ID);
     ProductInProductSetManagement.listProductsInProductSet(
-        PROJECT_ID, COMPUTE_REGION, PRODUCT_SET_ID);
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_SET_ID);
+
+    // Assert
+    got = bout.toString();
+    assertThat(got).doesNotContain(PRODUCT_ID);
+  }
+
+  @Test
+  public void testPurgeProductsInProductSet() throws Exception {
+    // Act
+    ProductInProductSetManagement.addProductToProductSet(
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_SET_ID);
+    ProductManagement.listProducts(
+            PROJECT_ID, COMPUTE_REGION);
+
+    // Assert
+    String got = bout.toString();
+    assertThat(got).contains(PRODUCT_ID);
+
+    bout.reset();
+    ProductInProductSetManagement.purgeProductsInProductSet(
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_SET_ID, true);
+
+    ProductManagement.listProducts(
+            PROJECT_ID, COMPUTE_REGION);
 
     // Assert
     got = bout.toString();

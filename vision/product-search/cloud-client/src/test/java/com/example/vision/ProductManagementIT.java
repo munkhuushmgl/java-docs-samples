@@ -67,7 +67,7 @@ public class ProductManagementIT {
 
     // Act
     ProductManagement.createProduct(
-        PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_DISPLAY_NAME, PRODUCT_CATEGORY);
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_DISPLAY_NAME, PRODUCT_CATEGORY);
     ProductManagement.listProducts(PROJECT_ID, COMPUTE_REGION);
 
     // Assert
@@ -79,7 +79,7 @@ public class ProductManagementIT {
   public void testDeleteProduct() throws Exception {
     // Act
     ProductManagement.createProduct(
-        PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_DISPLAY_NAME, PRODUCT_CATEGORY);
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_DISPLAY_NAME, PRODUCT_CATEGORY);
     ProductManagement.listProducts(PROJECT_ID, COMPUTE_REGION);
 
     // Assert
@@ -101,7 +101,7 @@ public class ProductManagementIT {
   public void testUpdateProductLabels() throws Exception {
     // Act
     ProductManagement.createProduct(
-        PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_DISPLAY_NAME, PRODUCT_CATEGORY);
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_DISPLAY_NAME, PRODUCT_CATEGORY);
     ProductManagement.getProduct(PROJECT_ID, COMPUTE_REGION, PRODUCT_ID);
 
     // Assert
@@ -113,11 +113,33 @@ public class ProductManagementIT {
 
     // Act
     ProductManagement.updateProductLabels(
-        PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, KEY + "=" + VALUE);
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, KEY + "=" + VALUE);
 
     // Assert
     got = bout.toString();
     assertThat(got).contains(KEY);
     assertThat(got).contains(VALUE);
+  }
+
+  @Test
+  public void testPurgeOrphanProducts() throws Exception {
+    // Act
+    ProductManagement.createProduct(
+            PROJECT_ID, COMPUTE_REGION, PRODUCT_ID, PRODUCT_DISPLAY_NAME, PRODUCT_CATEGORY);
+    ProductManagement.listProducts(PROJECT_ID, COMPUTE_REGION);
+
+    // Assert
+    String got = bout.toString();
+    assertThat(got).contains(PRODUCT_ID);
+
+    bout.reset();
+
+    // Act
+    ProductManagement.purgeOrphanProducts(PROJECT_ID, COMPUTE_REGION, true);
+
+    // Assert
+    got = bout.toString();
+    ProductManagement.listProducts(PROJECT_ID, COMPUTE_REGION);
+    assertThat(got).doesNotContain(PRODUCT_ID);
   }
 }
